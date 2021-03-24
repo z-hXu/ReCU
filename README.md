@@ -1,4 +1,4 @@
-# ReCU: Reviving the Dead Weights in Binary Neural Networks ([Paper Link](http://arxiv.org/abs/2103.12369)) ![]( https://visitor-badge.glitch.me/badge?page_id=recu).
+# ReCU: Reviving the Dead Weights in Binary Neural Networks ([Paper Link](http://arxiv.org/abs/2103.12369)) ![]( https://visitor-badge.glitch.me/badge?page_id=bnn_recu).
 Pytorch implementation of ReCU. 
 
 ## Dependencies
