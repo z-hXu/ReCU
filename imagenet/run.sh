@@ -1,0 +1,15 @@
+python -u main.py \
+--gpus 0,1,2,3 \
+--model resnet18_1w1a \
+--results_dir ./result \
+--data_path [DATA_PATH] \
+--dataset imagenet \
+--epochs 200 \
+--lr 0.1 \
+-b 512 \
+-bt 256 \
+--lr_type cos \
+--warm_up \
+--weight_decay 1e-4 \
+--tau_min 0.85 \
+--tau_max 0.99 \

@@ -1,0 +1,15 @@
+python -u main.py \
+--gpus 0 \
+--model resnet18_1w1a \
+--results_dir ./result \
+--data_path [DATA_PATH] \
+--dataset cifar10 \
+--epochs 600 \
+--lr 0.1 \
+-b 256 \
+-bt 128 \
+--lr_type cos \
+--warm_up \
+--weight_decay 5e-4 \
+--tau_min 0.85 \
+--tau_max 0.99 \
