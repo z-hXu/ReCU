@@ -14,6 +14,7 @@ If you find ReCU useful in your research, please consider citing:
   booktitle={Proceedings of the International Conference on Computer Vision (ICCV)},
   year={2021}
 }
+```
 
 ## Training on CIFAR-10
 ```bash
