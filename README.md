@@ -1,6 +1,10 @@
 # ReCU: Reviving the Dead Weights in Binary Neural Networks ([Paper Link](http://arxiv.org/abs/2103.12369)) ![]( https://visitor-badge.glitch.me/badge?page_id=bnn_recu).
 Pytorch implementation of ReCU. 
 
+## Tips
+
+Any problem, please contact the first author (Email: ianhsu@stu.xmu.edu.cn). 
+
 ## Dependencies
 * Python 3.7
 * Pytorch 1.1.0
