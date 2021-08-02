@@ -5,6 +5,16 @@ Pytorch implementation of ReCU.
 * Python 3.7
 * Pytorch 1.1.0
 
+## Citation
+If you find ReCU useful in your research, please consider citing:
+```
+@inproceedings{xu2021recu,
+  title={ReCU: Reviving the Dead Weights in Binary Neural Networks},
+  author={Xu, Zihan and Lin, Mingbao and Liu, Jianzhuang and Chen, Jie and Shao, Ling and Gao, Yue and Tian, Yonghong and Ji, Rongrong},
+  booktitle={Proceedings of the International Conference on Computer Vision (ICCV)},
+  year={2021}
+}
+
 ## Training on CIFAR-10
 ```bash
 python -u main.py \
