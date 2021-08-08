@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import models_cifar
-import models_imagenet
 import numpy as np
 from torch.autograd import Variable
 from utils import *
@@ -148,6 +147,8 @@ def main():
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs-args.warm_up*4, eta_min = 0, last_epoch=args.start_epoch)
     elif args.lr_type == 'step':
         lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, args.lr_decay_step, gamma=0.1, last_epoch=-1)
+    elif args.lr_type == 'linear':
+        lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch : (1.0-(epoch-args.warm_up*4)/(args.epochs-args.warm_up*4)), last_epoch=-1)
 
     if args.resume:
         optimizer.load_state_dict(checkpoint['optimizer'])
@@ -168,7 +169,7 @@ def main():
     #* record names of conv_modules
     conv_modules=[]
     for name, module in model.named_modules():
-        if isinstance(module,nn.Conv2d):
+        if isinstance(module,BinarizeConv2d):
             conv_modules.append(module)
 
 
@@ -257,9 +258,6 @@ def forward(data_loader, model, criterion, epoch=0, training=True, optimizer=Non
     for i, (inputs, target) in enumerate(data_loader):
         #* measure data loading time
         data_time.update(time.time() - end)
-        if i==1 and training:
-            for module in conv_modules:
-                module.epoch=-1
         if args.gpus is not None:
             inputs = inputs.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)

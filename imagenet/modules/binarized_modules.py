@@ -36,20 +36,18 @@ class BinarizeConv2d(nn.Conv2d):
                           self.stride, self.padding,
                           self.dilation, self.groups)
         #* scaling factor
-        output = output * self.alpha 
+        output = output * self.alpha
         return output
 
 
 class BinaryQuantize(Function):
     @staticmethod
     def forward(ctx, input):
-        ctx.save_for_backward(input)
         out = torch.sign(input)
         return out
 
     @staticmethod
     def backward(ctx, grad_output):
-        input = ctx.saved_tensors[0]
         grad_input = grad_output.clone()
         return grad_input
 

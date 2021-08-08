@@ -6,14 +6,15 @@ import random
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-import models_cifar
 import models_imagenet
 import numpy as np
 from torch.autograd import Variable
+from torch.nn import functional as F
 from utils import *
 from modules import *
 from datetime import datetime 
 import dataset
+import torchvision.models as models
 
 
 def main():
@@ -68,8 +69,17 @@ def main():
     #* create model
     if len(args.gpus)==1:
         model = eval(model_zoo+args.model)(num_classes=num_classes).cuda()
+        if args.teacher:
+            teacher = eval('models.'+args.teacher)(pretrained=True).cuda()
     else: 
         model = nn.DataParallel(eval(model_zoo+args.model)(num_classes=num_classes))
+        if args.teacher:
+            teacher = nn.DataParallel(eval('models.'+args.teacher)(pretrained=True))
+    if args.teacher:
+        teacher = teacher.type(args.type)
+        teacher.eval()
+    else:
+        teacher = None
     if not args.resume:
         logging.info("creating model %s", args.model)
         logging.info("model structure: ")
@@ -77,6 +87,10 @@ def main():
             logging.info('\t'+str(name)+': '+str(module))
         num_parameters = sum([l.nelement() for l in model.parameters()])
         logging.info("number of parameters: %d", num_parameters)
+        logging.info("load teacher model: %s", args.teacher)
+        if args.stage1:
+            logging.info("load stage1 model: %s", args.stage1)
+            model.load_state_dict(dataset.add_module_fromdict(torch.load(args.stage1, map_location=torch.device('cpu'))['state_dict']), strict=False)
 
     #* evaluate
     if args.evaluate:
@@ -110,6 +124,10 @@ def main():
 
     criterion = nn.CrossEntropyLoss().cuda()
     criterion = criterion.type(args.type)
+    if args.teacher:
+        criterionKD = DistributionLoss().type(args.type)
+    else:
+        criterionKD = None
     model = model.type(args.type)
 
     if args.evaluate:
@@ -244,7 +262,7 @@ def main():
 
         #* training
         train_loss, train_prec1, train_prec5 = train(
-            train_loader, model, criterion, epoch, optimizer)
+            train_loader, model, criterion, epoch, optimizer, teacher, criterionKD)
 
         #* adjust Lr
         if epoch >= 4 * args.warm_up:
@@ -304,7 +322,7 @@ def main():
                      .format(best_epoch+1, prec1=best_prec1, prec5=best_prec5, loss=best_loss))
 
 
-def forward(data_loader, model, criterion, epoch=0, training=True, optimizer=None):
+def forward(data_loader, model, criterion, epoch=0, training=True, optimizer=None, teacher=None, criterionKD=None):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -328,12 +346,17 @@ def forward(data_loader, model, criterion, epoch=0, training=True, optimizer=Non
 
             #* compute output
             output = model(input_var)
-            loss = criterion(output, target_var)
+            if not training or not args.teacher:
+                loss = criterion(output, target_var)
 
             if type(output) is list:
                 output = output[0]
 
             if training:
+                if args.teacher:
+                    with torch.no_grad():
+                        output_t = teacher(input_var)
+                    loss = criterionKD(output, output_t)
                 #* back-propagation
                 optimizer.zero_grad()
                 loss.backward()
@@ -374,12 +397,17 @@ def forward(data_loader, model, criterion, epoch=0, training=True, optimizer=Non
 
             #* compute output
             output = model(input_var)
-            loss = criterion(output, target_var)
+            if not training or not teacher:
+                loss = criterion(output, target_var)
 
             if type(output) is list:
                 output = output[0]
 
             if training:
+                if args.teacher:
+                    with torch.no_grad():
+                        output_t = teacher(input_var)
+                    loss = criterionKD(output, output_t)
                 #* back-propagation
                 optimizer.zero_grad()
                 loss.backward()
@@ -411,10 +439,10 @@ def forward(data_loader, model, criterion, epoch=0, training=True, optimizer=Non
     return losses.avg, top1.avg, top5.avg
 
 
-def train(data_loader, model, criterion, epoch, optimizer):
+def train(data_loader, model, criterion, epoch, optimizer, teacher, criterionKD):
     model.train()
     return forward(data_loader, model, criterion, epoch,
-                   training=True, optimizer=optimizer)
+                   training=True, optimizer=optimizer, teacher=teacher, criterionKD=criterionKD)
 
 
 def validate(data_loader, model, criterion, epoch):

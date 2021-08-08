@@ -15,6 +15,18 @@ from modules import *
 
 __all__ =['resnet18A_1w1a','resnet18B_1w1a','resnet18C_1w1a','resnet18_1w1a']
 
+def _weights_init(m):
+    if isinstance(m, nn.Conv2d):
+        init.kaiming_normal_(m.weight)
+
+class LambdaLayer(nn.Module):
+    def __init__(self, lambd):
+        super(LambdaLayer, self).__init__()
+        self.lambd = lambd
+
+    def forward(self, x):
+        return self.lambd(x)
+
 class BasicBlock_1w1a(nn.Module):
     expansion = 1
 
@@ -26,11 +38,12 @@ class BasicBlock_1w1a(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
+        pad = 0 if planes == self.expansion*in_planes else planes // 4
         if stride != 1 or in_planes != self.expansion*planes:
             self.shortcut = nn.Sequential(
-                BinarizeConv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion*planes)
-            )
+                        nn.AvgPool2d((2,2)), 
+                        LambdaLayer(lambda x:
+                        F.pad(x, (0, 0, 0, 0, pad, pad), "constant", 0)))
 
     def forward(self, x):
         out = F.hardtanh(self.bn1(self.conv1(x)), inplace=True)
@@ -81,6 +94,8 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, num_channel[3], num_blocks[3], stride=2)
         self.linear = nn.Linear(num_channel[3]*block.expansion, num_classes)
         self.bn2 = nn.BatchNorm1d(num_channel[3]*block.expansion)
+
+        self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -135,7 +150,7 @@ def test(net):
     for x in filter(lambda p: p.requires_grad, net.parameters()):
         total_params += np.prod(x.data.numpy().shape)
     print("Total number of params", total_params)
-    print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>3, net.parameters()))))
+    print("Total layers", len(list(filter(lambda name: 'conv' in name or 'linear' in name, [name[0] for name in list(net.named_modules())]))))
 
 
 if __name__ == "__main__":

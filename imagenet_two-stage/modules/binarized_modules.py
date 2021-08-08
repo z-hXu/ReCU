@@ -17,21 +17,18 @@ class BinarizeConv2d(nn.Conv2d):
         a = input
         w = self.weight
 
-        w0 = w - w.mean([1,2,3], keepdim=True)
-        w1 = w0 / (torch.sqrt(w0.var([1,2,3], keepdim=True) + 1e-5) / 2 / np.sqrt(2))
-        EW = torch.mean(torch.abs(w1))
+        w = w - w.mean([1,2,3], keepdim=True)
+        w = w / (torch.sqrt(w.var([1,2,3], keepdim=True) + 1e-5) / 2 / np.sqrt(2))
+        EW = torch.mean(torch.abs(w))
         Q_tau = (- EW * torch.log(2-2*self.tau)).detach().cpu().item()
-        w2 = torch.clamp(w1, -Q_tau, Q_tau)
+        w = torch.clamp(w, -Q_tau, Q_tau)
 
         if self.training:
-            a0 = a / torch.sqrt(a.var([1,2,3], keepdim=True) + 1e-5)
-        else: 
-            a0 = a
+            a = a / torch.sqrt(a.var([1,2,3], keepdim=True) + 1e-5)
         
         #* binarize
-        bw = BinaryQuantize().apply(w2)
-        ba = BinaryQuantize_a().apply(a0)
-        #* 1bit conv
+        bw = BinaryQuantize().apply(w)
+        ba = BinaryQuantize_a().apply(a)
         output = F.conv2d(ba, bw, self.bias,
                           self.stride, self.padding,
                           self.dilation, self.groups)

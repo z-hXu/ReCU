@@ -158,7 +158,7 @@ def test(net):
     for x in filter(lambda p: p.requires_grad, net.parameters()):
         total_params += np.prod(x.data.numpy().shape)
     print("Total number of params", total_params)
-    print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>3, net.parameters()))))
+    print("Total layers", len(list(filter(lambda name: 'conv' in name or 'fc' in name, [name[0] for name in list(net.named_modules())]))))
 
 
 if __name__ == "__main__":

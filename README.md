@@ -37,7 +37,6 @@ python -u main.py \
 --weight_decay 5e-4 \
 --tau_min 0.85 \
 --tau_max 0.99 \
---seed 123 \
 ```
 
 ### Optional arguments
@@ -168,5 +167,27 @@ python -u main.py \
 --model resnet18_1w1a (or resnet34_1w1a)\
 --dataset imagenet \
 --data_path [DATA_PATH] \
+-bt 256 \
+```
+
+## Comparison with SOTAs
+
+We test our ReCU using the same ResNet-18 structure and training setttings as [ReActNet](https://github.com/liuzechun/ReActNet), and obtain higher top-1 accuracy.
+
+| Methods | Top-1 acc | Quantized model link |
+|:-------:|:---------:|:--------------------:|
+|ReActNet |  65.9     | [ReActNet (Bi-Real based)](https://github.com/liuzechun/ReActNet#models) |
+| ReCU    |  66.4     | [ResNet-18](https://drive.google.com/drive/folders/1vukw5yU0gLQlERmI9_dE4R4V1eg59mEI?usp=sharing)        |
+
+
+To verify the performance of our quantized models with ReActNet-like structure on ImageNet, please use the following command:
+```bash
+cd imagenet_two-stage && python -u evaluate.py \
+python -u main.py \
+--gpus 0 \
+-e [best_model_path] \
+--model resnet18_1w1a \
+--data_path [DATA_PATH] \
+--dataset imagenet \
 -bt 256 \
 ```
